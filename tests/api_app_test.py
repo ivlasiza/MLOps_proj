@@ -13,10 +13,22 @@ from api_app_titanic import app
 
 client = TestClient(app)
 def test_api_app():
+    # Тест 1:  Корректный запрос 
     response = client.post("/predict/",
                            json={"Pclass": 1, "Sex": 0, "Age": 20.0, "SibSp": 0, "Parch": 0, "Fare": 15, "Embarked": 0})
-    json_data = response.json()
     assert response.status_code == 200
+    json_data = response.json()
+    assert 'survival_prediction' in json_data
 
-    # Проверяем, что ключ 'survival_prediction' присутствует в словаре json_data
-    assert 'survival_prediction' in json_data, "'survival_prediction' field missing in JSON response"
+    # Тест 2:  Проверка диапазона предсказания (0 или 1)
+    assert json_data['survival_prediction'] in [0, 1]
+
+    # Тест 3:  Обработка отсутствующего признака 
+    response = client.post("/predict/",
+                           json={"Pclass": 1, "Sex": 0, "SibSp": 0, "Parch": 0, "Fare": 15, "Embarked": 0})
+    assert response.status_code == 422  # Должен вернуть ошибку валидации
+
+    # Тест 4:  Некорректный тип данных
+    response = client.post("/predict/",
+                           json={"Pclass": 1, "Sex": "female", "Age": 20.0, "SibSp": 0, "Parch": 0, "Fare": 15, "Embarked": 0})
+    assert response.status_code == 422  # Должен вернуть ошибку валидации
